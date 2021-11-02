@@ -80,7 +80,37 @@ def forward_prop(net, input_values, threshold_fn=stairstep):
 
     top_list = net.topological_sort()
 
-    for i in top_list:
+    neuron_outputs = {}
+    # print(net)
+    # print(net.inputs)
+    # print(top_list)
+    # print(input_values)
+
+    for node in top_list:
+        output = 0
+        for input in net.get_incoming_neighbors(node):
+
+            if type(input) is str:
+                if input in net.inputs:
+                    input_val = input_values[input]
+                else:
+                    input_val = neuron_outputs[input]
+            else:
+                input_val = input
+
+            wire = net.get_wires(startNode=input, endNode=node)[0]
+
+            output += input_val*wire.get_weight()
+
+        node_output = threshold_fn(output)
+        neuron_outputs[node] = node_output
+
+    return node_output, neuron_outputs
+
+
+
+
+
 
 
 
@@ -93,12 +123,36 @@ def gradient_ascent_step(func, inputs, step_size):
     After trying all possible variable assignments, returns a tuple containing:
     (1) the maximum function output found, and
     (2) the list of inputs that yielded the highest function output."""
-    raise NotImplementedError
+
+    highest = -INF
+    final_inputs = None
+
+    for i in (-step_size, 0, step_size):
+        for j in (-step_size, 0, step_size):
+            for k in (-step_size, 0, step_size):
+                result = func(inputs[0]+i, inputs[1]+j, inputs[2]+k)
+                if result > highest:
+                    highest = result
+                    final_inputs = [inputs[0]+i, inputs[1]+j, inputs[2]+k]
+
+
+    return highest, final_inputs
+
 
 def get_back_prop_dependencies(net, wire):
     """Given a wire in a neural network, returns a set of inputs, neurons, and
     Wires whose outputs/values are required to update this wire's weight."""
-    raise NotImplementedError
+
+    dependencies = set()
+
+    dependencies.add(wire)
+    dependencies.add(wire.startNode)
+    dependencies.add(wire.endNode)
+
+    for wire in net.get_wires(endNode=wire.startNode):
+        dependencies = set.union(dependencies, get_back_prop_dependencies(net, wire))
+
+    return dependencies
 
 def calculate_deltas(net, desired_output, neuron_outputs):
     """Given a neural net and a dictionary of neuron outputs from forward-
