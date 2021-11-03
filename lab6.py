@@ -78,15 +78,9 @@ def forward_prop(net, input_values, threshold_fn=stairstep):
     (1) the final output of the neural net
     (2) a dictionary mapping neurons to their immediate outputs"""
 
-    top_list = net.topological_sort()
-
     neuron_outputs = {}
-    # print(net)
-    # print(net.inputs)
-    # print(top_list)
-    # print(input_values)
 
-    for node in top_list:
+    for node in net.topological_sort():
         output = 0
         for input in net.get_incoming_neighbors(node):
 
@@ -160,46 +154,90 @@ def calculate_deltas(net, desired_output, neuron_outputs):
     neuron in the net. Uses the sigmoid function to compute neuron output.
     Returns a dictionary mapping neuron names to update coefficient (the
     delta_B values). """
-    raise NotImplementedError
+
+    deltas = {}
+    topological_neuron_outputs = {}
+
+    neuron_outputs_list = sorted(neuron_outputs, key=lambda k: net.topological_sort().index(k), reverse=True)
+
+    for node in neuron_outputs_list:
+        topological_neuron_outputs[node] = neuron_outputs[node]
+
+    for node in topological_neuron_outputs:
+        out = topological_neuron_outputs[node]
+        if net.is_output_neuron(node):
+            deltas[node] = out * (1-out) * (desired_output-out)
+
+        else:
+            weight_sum = 0
+            for wire in net.get_wires(startNode=node):
+                weight_sum += wire.get_weight() * deltas[wire.endNode]
+                deltas[node] = out * (1 - out) * weight_sum
+
+    return deltas
 
 def update_weights(net, input_values, desired_output, neuron_outputs, r=1):
     """Performs a single step of back-propagation.  Computes delta_B values and
     weight updates for entire neural net, then updates all weights.  Uses the
     sigmoid function to compute neuron output.  Returns the modified neural net,
     with the updated weights."""
-    raise NotImplementedError
+
+    deltas = calculate_deltas(net, desired_output, neuron_outputs)
+
+    for node in net.topological_sort():
+        for input in net.get_incoming_neighbors(node):
+
+            if type(input) is str:
+                if input in net.inputs:
+                    input_val = input_values[input]
+                else:
+                    input_val = neuron_outputs[input]
+            else:
+                input_val = input
+
+            wire = net.get_wires(startNode=input, endNode=node)[0]
+
+            wire.set_weight(wire.get_weight() + r * deltas[node] * input_val)
+
+    return net
 
 def back_prop(net, input_values, desired_output, r=1, minimum_accuracy=-0.001):
     """Updates weights until accuracy surpasses minimum_accuracy.  Uses the
     sigmoid function to compute neuron output.  Returns a tuple containing:
     (1) the modified neural net, with trained weights
     (2) the number of iterations (that is, the number of weight updates)"""
-    raise NotImplementedError
+
+    num_loops = 0
+    while accuracy(desired_output, forward_prop(net, input_values, sigmoid)[0]) <= minimum_accuracy:
+        num_loops += 1
+        net = update_weights(net, input_values, desired_output, forward_prop(net, input_values, sigmoid)[1], r)
+
+    return net, num_loops
 
 
 #### Part 5: Training a Neural Net #############################################
 
-ANSWER_1 = None
-ANSWER_2 = None
-ANSWER_3 = None
-ANSWER_4 = None
-ANSWER_5 = None
+ANSWER_1 = 20
+ANSWER_2 = 37
+ANSWER_3 = 7
+ANSWER_4 = 127
+ANSWER_5 = 70
 
-ANSWER_6 = None
-ANSWER_7 = None
-ANSWER_8 = None
-ANSWER_9 = None
+ANSWER_6 = 1
+ANSWER_7 = "checkerboard"
+ANSWER_8 = ['small', 'medium','large']
+ANSWER_9 = 'B'
 
-ANSWER_10 = None
-ANSWER_11 = None
-ANSWER_12 = None
+ANSWER_10 = 'D'
+ANSWER_11 = ['A','C']
+ANSWER_12 = ['A','E']
 
 
 #### SURVEY ####################################################################
 
-NAME = None
-COLLABORATORS = None
-HOW_MANY_HOURS_THIS_LAB_TOOK = 1.5
-WHAT_I_FOUND_INTERESTING = None
-WHAT_I_FOUND_BORING = None
-SUGGESTIONS = None
+NAME = "Theodore Calabrese"
+COLLABORATORS = ""
+HOW_MANY_HOURS_THIS_LAB_TOOK = 10
+WHAT_I_FOUND_INTERESTING = "Neural nets are cool"
+WHAT_I_FOUND_BORING = "nothing"
+SUGGESTIONS = ""

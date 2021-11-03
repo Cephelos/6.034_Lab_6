@@ -251,7 +251,7 @@ def start_training(data=None, net=None, resolution=None):
 
 
 if __name__ == "__main__":
-    train = "diagonal"
+    train = "checkerboard"
     net = "medium"
     resolution = 1
 
